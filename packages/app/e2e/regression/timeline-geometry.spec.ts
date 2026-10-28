@@ -756,6 +756,25 @@ test("groups consecutive sent prompts under the last one's meta line, with each 
   await expect(first.getByRole("button", { name: "Copy message" })).toHaveCount(1)
 })
 
+test("leaves a long prompt unfolded while Fold long messages is off", async ({ page }) => {
+  const text = Array.from({ length: 20 }, (_, index) => `Long line ${index + 1}`).join("\n")
+
+  await setupTimeline(page, {
+    messages: [
+      userMessage([userText(text, { id: "prt_msg_0001_nofold_text" })], {
+        id: "msg_0001_nofold",
+        created: 1700000000000,
+      }),
+    ],
+    viewport: { width: 1200, height: 700 },
+  })
+
+  const row = page.locator('[data-timeline-row="UserMessage"][data-message-id="msg_0001_nofold"]')
+  await expect(row).toContainText("Long line 20")
+  await expect(row.locator('[data-slot="user-message-fold"]')).toHaveCount(0)
+  await expect(row.getByRole("button", { name: "Read more" })).toHaveCount(0)
+})
+
 test("folds a prompt past 12 lines to its first 8 and keeps it open after scrolling out of view", async ({ page }) => {
   const lines = (name: string, count: number) =>
     Array.from({ length: count }, (_, index) => `${name} line ${index + 1}`).join("\n")
@@ -782,6 +801,7 @@ test("folds a prompt past 12 lines to its first 8 and keeps it open after scroll
         return [prompt(id, `Later prompt ${index}`, created), reply(`${id}_reply`, id, created + 1_000)]
       }).flat(),
     ],
+    settings: { foldUserMessages: true },
     viewport: { width: 1200, height: 700 },
   })
 

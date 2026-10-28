@@ -26,7 +26,7 @@ const FOLD_TOGGLE = '[data-slot="user-message-fold-toggle"]'
 const FOLD_FADE = 40
 
 function supportsHighlights() {
-  return typeof CSS !== "undefined" && typeof CSS.highlights === "object" && CSS.highlights !== null
+  return "highlights" in globalThis.CSS && !!CSS.highlights
 }
 
 function clearHighlights() {
@@ -58,6 +58,7 @@ function collectRanges(
         node.parentElement?.closest(FOLD_TOGGLE) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
     })
 
+    // SAFETY: SHOW_TEXT restricts this walker to Text nodes.
     let node = walker.nextNode() as Text | null
 
     while (node) {
@@ -78,6 +79,7 @@ function collectRanges(
         at = lowerValue.indexOf(lower, from)
       }
 
+      // SAFETY: SHOW_TEXT restricts this walker to Text nodes.
       node = walker.nextNode() as Text | null
     }
   }

@@ -9,6 +9,12 @@ import { rehypeHeadingIds, unified } from "@astrojs/markdown-remark"
 import rehypeAutolinkHeadings from "rehype-autolink-headings"
 import { copyFileSync } from "fs"
 import { execFileSync } from "child_process"
+import { setFlagsFromString } from "v8"
+
+// Node 24+ can deadlock in process.exit() when a background V8 compile job waits for a GC the exiting main thread
+// never runs, so `astro build` prints "Complete!" and never exits (https://github.com/nodejs/node/issues/64274).
+setFlagsFromString("--no-maglev")
+setFlagsFromString("--no-concurrent-sparkplug")
 
 // https://astro.build/config
 export default defineConfig({

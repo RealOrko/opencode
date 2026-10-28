@@ -513,3 +513,20 @@ mobile-starlight-toc nav {
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
+
+/* Starlight 0.41 keeps the "On this page" column at least a sidebar wide, which narrows the content between 1160px and 1320px. Keep the earlier proportional widths. */
+@media (min-width: 72rem) {
+  .right-sidebar-container {
+    width: calc(var(--sl-sidebar-width) + (100% - var(--sl-content-width) - var(--sl-sidebar-width)) / 2);
+  }
+
+  [data-has-sidebar][data-has-toc] .main-pane {
+    width: calc(var(--sl-content-width) + (100% - var(--sl-content-width) - var(--sl-sidebar-width)) / 2);
+  }
+}
+
+/* Starlight 0.41 turns off iOS text inflation in landscape; keep the browser default. */
+html {
+  -webkit-text-size-adjust: auto;
+  text-size-adjust: auto;
+}

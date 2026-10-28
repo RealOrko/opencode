@@ -309,7 +309,6 @@ ol {
   padding-inline-start: 1.5rem !important;
 }
 
-/* Starlight 0.41 draws the tab underline with `--sl-tab-color-border` and adds top padding with a tighter line height. */
 /* Starlight 0.41 lays tabs out with flexbox and draws the underline as a box shadow. Keep the earlier border layout so tab heights, underline colors and focus rings stay the same. */
 .sl-markdown-content .tab {
   display: list-item;

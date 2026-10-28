@@ -4,7 +4,7 @@ import { type ExtensionInvocation, hooked } from "../tool-runtime.js"
 import type { Interpreter } from "./interpreter.js"
 import { createErrorValue, isErrorType } from "./intrinsics.js"
 import { MAX_VALUE_DEPTH } from "./limits.js"
-import { PendingThrow, Throw, typeError } from "./model.js"
+import { type AstNode, PendingThrow, Throw, typeError } from "./model.js"
 import type { Host } from "./runner.js"
 import { fn } from "./native.js"
 import {
@@ -155,23 +155,24 @@ export const extensionGlobals = <R>(
       } catch (reason) {
         return blocking(ctx.runner.blocking(settle(Effect.fail(reason))))
       }
-      const effect = Effect.isEffect(result)
-        ? // Extension.Services puts a global's Effect requirements in the runtime's environment.
-          (result as Effect.Effect<unknown, unknown, R>)
-        : result instanceof Promise
-          ? Effect.tryPromise({ try: () => result, catch: (reason) => reason })
-          : undefined
-      if (effect === undefined) return blocking(ctx.runner.blocking(settle(Effect.succeed(result))))
-      const runner = ctx.runner
-      const promise = runner.newPromise()
-      const resolving = runner.resolving(promise, site)
-      runner.host(
-        settle(effect),
-        (settled) => (settled.ok ? resolving.resolve(settled.value as Value) : resolving.reject(settled.error)),
-        site,
-      )
-      return promise
+      // Extension.Services adds an Effect global's requirements to R.
+      if (Effect.isEffect(result)) return pending(settle(result as Effect.Effect<unknown, unknown, R>), site)
+      if (result instanceof Promise)
+        return pending(settle(Effect.tryPromise({ try: () => result, catch: (reason) => reason })), site)
+      return blocking(ctx.runner.blocking(settle(Effect.succeed(result))))
     })
+
+  // An asynchronous host call: the program holds a promise that settles when the host's work does.
+  const pending = (work: Effect.Effect<Value, Throw, R>, site: AstNode | undefined) => {
+    const promise = ctx.runner.newPromise()
+    const resolving = ctx.runner.resolving(promise, site)
+    ctx.runner.host(
+      work,
+      (settled) => (settled.ok ? resolving.resolve(settled.value as Value) : resolving.reject(settled.error)),
+      site,
+    )
+    return promise
+  }
 
   return extensions.flatMap((extension) =>
     Object.entries(extension.globals).map(

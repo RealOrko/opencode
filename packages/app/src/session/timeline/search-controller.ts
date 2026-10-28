@@ -26,7 +26,7 @@ const FOLD_TOGGLE = '[data-slot="user-message-fold-toggle"]'
 const FOLD_FADE = 40
 
 function supportsHighlights() {
-  return "highlights" in globalThis.CSS && !!CSS.highlights
+  return !!globalThis.CSS?.highlights
 }
 
 function clearHighlights() {

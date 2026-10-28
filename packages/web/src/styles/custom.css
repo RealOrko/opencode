@@ -312,7 +312,7 @@ ol {
 /* Starlight 0.41 draws the tab underline with `--sl-tab-color-border` and adds top padding with a tighter line height. */
 /* Starlight 0.41 lays tabs out with flexbox and draws the underline as a box shadow. Keep the earlier border layout so tab heights, underline colors and focus rings stay the same. */
 .sl-markdown-content .tab {
-  display: block;
+  display: list-item;
   margin-bottom: -2px;
 }
 
@@ -491,10 +491,23 @@ h6,
   opacity: 0.66;
 }
 
-/* The CSS minifier keeps only the last of a duplicated prefixed/unprefixed pair, so the unprefixed one goes last. */
-dialog[aria-label="Search"]::backdrop {
+/* The theme styles the search dialog through `aria-label="Search"`, which only matches English pages. Apply the same styles in every language.
+   The CSS minifier keeps only the last of a duplicated prefixed/unprefixed pair, so the unprefixed one goes last. */
+site-search dialog {
+  border: 1px solid var(--sl-color-border);
+  border-radius: 0;
+  background-color: var(--sl-color-bg);
+  box-shadow: var(--sl-shadow-md);
+}
+
+site-search dialog[open] {
+  animation: fadeInScaleUp 0.2s ease forwards;
+}
+
+site-search dialog::backdrop {
   -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
+  animation: fadeInBackdrop 0.2s ease forwards;
 }
 
 mobile-starlight-toc nav {

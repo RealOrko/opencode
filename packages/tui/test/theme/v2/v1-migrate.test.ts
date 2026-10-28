@@ -2,6 +2,7 @@ import { expect, test } from "bun:test"
 import type { RGBA } from "@opentui/core"
 import {
   migrateV1,
+  migrateV1NewDesigns,
   resolveThemeDocument,
   rgbToOklch,
   selectThemeMode,
@@ -288,7 +289,7 @@ test("keeps both modes when a shared background has different contrast", () => {
 })
 
 test("lays out V1 colors on the opencode2 steps under new designs", () => {
-  const migrated = migrateV1(DEFAULT_THEMES.tokyonight!, { newDesigns: true })
+  const migrated = migrateV1NewDesigns(DEFAULT_THEMES.tokyonight!)
   expect(migrated.base.text?.base).toBe("$hue.neutral.100")
   expect(migrated.base.text?.muted).toBe("$hue.neutral.200")
   expect(migrated.base.text?.faint).toBe("$hue.neutral.300")
@@ -316,9 +317,22 @@ test("lays out V1 colors on the opencode2 steps under new designs", () => {
   }
 })
 
+test("keeps transparent V1 surfaces transparent under new designs", () => {
+  const source = structuredClone(DEFAULT_THEMES.tokyonight!)
+  source.theme.background = "transparent"
+  source.theme.backgroundPanel = "none"
+  for (const mode of ["dark", "light"] as const) {
+    const resolved = resolveThemeDocument(migrateV1NewDesigns(source), mode)
+    expect(resolved.background.base.toInts()[3]).toBe(0)
+    expect(resolved.background.raised.base.toInts()[3]).toBe(0)
+    expect(resolved.background.raised.high.toInts()[3]).toBe(255)
+    expect(resolved.background.action.primary.focused.toInts()[3]).toBe(255)
+  }
+})
+
 test("migrates every built-in V1 theme under new designs", () => {
   for (const source of Object.values(DEFAULT_THEMES)) {
-    const migrated = migrateV1(source, { newDesigns: true })
+    const migrated = migrateV1NewDesigns(source)
     for (const mode of themeModes(migrated)) {
       const resolved = resolveThemeDocument(migrated, mode)
       expect(resolved.text.faint).toBeDefined()

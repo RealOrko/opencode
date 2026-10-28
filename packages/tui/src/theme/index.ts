@@ -1,4 +1,10 @@
-import { migrateV1, parseThemeDocument, type ThemeDocument, type ModeDefinition } from "@opencode/theme/tui"
+import {
+  migrateV1,
+  migrateV1NewDesigns,
+  parseThemeDocument,
+  type ThemeDocument,
+  type ModeDefinition,
+} from "@opencode/theme/tui"
 import { resolveThemeColors } from "./resolve"
 import { DEFAULT_THEMES, type Theme, type ThemeV1Json } from "./v1"
 import opencode from "./assets/v2/opencode.json" with { type: "json" }
@@ -65,10 +71,8 @@ export function parseTheme(source: ThemeDocumentSource, name = "theme", options:
   const cached = cache.get(source)
   if (cached) return cached
 
-  const document =
-    "theme" in source
-      ? migrateV1(source as ThemeV1Json, { newDesigns: options.newDesigns })
-      : parseThemeDocument(source, name)
+  const migrate = options.newDesigns ? migrateV1NewDesigns : migrateV1
+  const document = "theme" in source ? migrate(source as ThemeV1Json) : parseThemeDocument(source, name)
 
   cache.set(source, document)
   return document

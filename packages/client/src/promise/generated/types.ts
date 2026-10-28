@@ -184,11 +184,31 @@ export type ModelMaxTokensField = "max_completion_tokens" | "max_tokens"
 
 export type ModelCacheFormat = "anthropic" | "alibaba"
 
+export type ModelMediaInput = "assets" | "state" | "root"
+
 export type ModelCapabilities = { tools: boolean; input: Array<string>; output: Array<string>; temperature?: boolean }
 
 export type MoneyUSDPerMillionTokens = number
 
 export type GenerateTextResponse = { data: { text: string } }
+
+export type GenerateUsage = { input?: number; output?: number }
+
+export type GenerateNative = { [x: string]: JsonValue }
+
+export type GeneratePredicateAnswer = { type: "predicate"; name: string; probability: number }
+
+export type GenerateChoiceValue = string | boolean
+
+export type GenerateScoreAnswer = {
+  type: "score"
+  name: string
+  score: number
+  probabilities: Array<{ value: number; label: string; probability: number }>
+  confidence: number
+}
+
+export type GenerateErrorAnswer = { type: "error"; name: string; reason: string; message?: string }
 
 export type VoiceTransportType = "webrtc" | "websocket"
 
@@ -349,6 +369,14 @@ export type ModelRef = { id: string; providerID: ProviderID; variant?: string }
 
 export type ProviderCache = { ttl?: ProviderCacheTTL }
 
+export type ModelVariantSettings = { compaction?: ProviderCompaction; encoding?: ProviderEncoding } & {
+  [x: string]: any
+}
+
+export type ConfigModelVariantSettings = { compaction?: ProviderCompaction; encoding?: ProviderEncoding } & {
+  [x: string]: JsonValue | null
+}
+
 export type PermissionRule = { action: string; resource: string; effect: PermissionEffect }
 
 export type PluginInfo = { id?: PluginID; source: PluginSource; features: PluginFeatures; state: PluginState }
@@ -404,6 +432,8 @@ export type SessionRevert = {
   snapshot?: SnapshotID
   files?: Array<FileDiffInfo>
 }
+
+export type GenerateImageOutput2 = { type: "image"; data: PromptBase64; mime: string; name?: string }
 
 export type PromptFileAttachment = {
   data: PromptBase64
@@ -636,6 +666,7 @@ export type ModelCompatibility = {
   cacheFormat?: ModelCacheFormat
   supportsThinkingBlockBinding?: boolean
   supportsEffortUpdates?: boolean
+  mediaInput?: ModelMediaInput
 }
 
 export type ProviderCompatibility = {
@@ -647,6 +678,7 @@ export type ProviderCompatibility = {
   supportsPromptCacheKey?: boolean
   streamUsage?: boolean
   cacheFormat?: ModelCacheFormat
+  mediaInput?: ModelMediaInput
 }
 
 export type ModelCost = {
@@ -654,6 +686,14 @@ export type ModelCost = {
   input: MoneyUSDPerMillionTokens
   output: MoneyUSDPerMillionTokens
   cache: { read: MoneyUSDPerMillionTokens; write: MoneyUSDPerMillionTokens }
+}
+
+export type GenerateChoiceAnswer = {
+  type: "choice"
+  name: string
+  choice: GenerateChoiceValue
+  probabilities: Array<{ value: GenerateChoiceValue; probability: number }>
+  confidence: number
 }
 
 export type VoiceModel = { model: string; provider: string; transports: Array<VoiceTransportType>; available: boolean }
@@ -950,6 +990,13 @@ export type ConfigModelSettings = {
   encoding?: ProviderEncoding
 } & { [x: string]: JsonValue | null }
 
+export type ModelVariant = {
+  id: string
+  settings?: ModelVariantSettings
+  headers?: { [x: string]: string }
+  body?: { [x: string]: any }
+}
+
 export type PermissionRuleset = Array<PermissionRule>
 
 export type UsageLimitsBudget = {
@@ -965,6 +1012,13 @@ export type UsageLimitsBudget = {
   picked: boolean
   shared: boolean
   resetsAt: number
+}
+
+export type GenerateImageResult = {
+  images: Array<GenerateImageOutput2>
+  cost?: MoneyUSD
+  tokens?: GenerateUsage
+  native?: GenerateNative
 }
 
 export type SessionInboxUserPayload = {
@@ -2003,6 +2057,12 @@ export type SessionMessageToolStateError1 = {
   metadata?: { [x: string]: JsonValue }
 }
 
+export type GenerateDecisionAnswer =
+  | GeneratePredicateAnswer
+  | GenerateChoiceAnswer
+  | GenerateScoreAnswer
+  | GenerateErrorAnswer
+
 export type VoiceModelsResponse = { data: { models: Array<VoiceModel>; default?: string | undefined } }
 
 export type VoiceSessionResponse = { data: { transport: VoiceTransport } }
@@ -2118,11 +2178,26 @@ export type ProviderInfo = {
   body?: { [x: string]: any }
 }
 
-export type ModelVariant = {
+export type ModelInfo = {
   id: string
+  modelID: string
+  providerID: ProviderID
+  canonical?: ProviderID
+  type?: ModelType
+  family?: string
+  name: string
+  compatibility?: ModelCompatibility
+  package?: string
   settings?: ModelSettings
   headers?: { [x: string]: string }
   body?: { [x: string]: any }
+  capabilities: ModelCapabilities
+  variants: Array<ModelVariant>
+  time: { released: number }
+  cost: Array<ModelCost>
+  status: "alpha" | "beta" | "deprecated" | "active"
+  enabled: boolean
+  limit: { context: number; input?: number; output: number }
 }
 
 export type SessionInfo = {
@@ -2322,7 +2397,7 @@ export type ConfigEntry =
                 capabilities?: ConfigModelCapabilities
                 variants?: Array<{
                   id: string
-                  settings?: ConfigModelSettings
+                  settings?: ConfigModelVariantSettings
                   headers?: { [x: string]: string }
                   body?: { [x: string]: JsonValue }
                 }>
@@ -2367,6 +2442,8 @@ export type UsageLimitsInfo = {
   go?: UsageLimitsGo
   budgets: Array<UsageLimitsBudget>
 }
+
+export type GenerateImageResponse = { data: GenerateImageResult }
 
 export type SessionInboxUser = {
   id: SessionMessageID
@@ -2413,6 +2490,13 @@ export type SessionMessageAssistantTool1 = {
   time: { created: number; ran?: number; completed?: number }
 }
 
+export type GenerateDecisionResult = {
+  answers: Array<GenerateDecisionAnswer>
+  cost?: MoneyUSD
+  tokens?: GenerateUsage
+  native?: GenerateNative
+}
+
 export type CredentialEntry = {
   id: CredentialID
   integrationID: IntegrationID
@@ -2435,28 +2519,6 @@ export type AgentInfo = {
   color?: AgentColor
   steps?: number
   permissions: PermissionRuleset
-}
-
-export type ModelInfo = {
-  id: string
-  modelID: string
-  providerID: ProviderID
-  canonical?: ProviderID
-  type?: ModelType
-  family?: string
-  name: string
-  compatibility?: ModelCompatibility
-  package?: string
-  settings?: ModelSettings
-  headers?: { [x: string]: string }
-  body?: { [x: string]: any }
-  capabilities: ModelCapabilities
-  variants: Array<ModelVariant>
-  time: { released: number }
-  cost: Array<ModelCost>
-  status: "alpha" | "beta" | "deprecated" | "active"
-  enabled: boolean
-  limit: { context: number; input?: number; output: number }
 }
 
 export type SessionsResponse = {
@@ -2515,6 +2577,8 @@ export type SessionMessageAssistantContentEncoded =
   | SessionMessageAssistantText1
   | SessionMessageAssistantReasoning1
   | SessionMessageAssistantTool1
+
+export type GenerateDecisionsResponse = { data: GenerateDecisionResult }
 
 export type FormInfo1 = { id: FormID; sessionID: string; title: string; metadata?: FormMetadata1; fields: FormFields2 }
 
@@ -2874,6 +2938,36 @@ export type ProviderNotFoundError = {
 }
 export const isProviderNotFoundError = (value: unknown): value is ProviderNotFoundError =>
   typeof value === "object" && value !== null && "_tag" in value && value["_tag"] === "ProviderNotFoundError"
+
+export type ModelNotFoundError = {
+  readonly _tag: "ModelNotFoundError"
+  readonly providerID: string
+  readonly modelID: string
+  readonly message: string
+}
+export const isModelNotFoundError = (value: unknown): value is ModelNotFoundError =>
+  typeof value === "object" && value !== null && "_tag" in value && value["_tag"] === "ModelNotFoundError"
+
+export type UnsupportedModelError = {
+  readonly _tag: "UnsupportedModelError"
+  readonly providerID: string
+  readonly modelID: string
+  readonly capability: string
+  readonly message: string
+}
+export const isUnsupportedModelError = (value: unknown): value is UnsupportedModelError =>
+  typeof value === "object" && value !== null && "_tag" in value && value["_tag"] === "UnsupportedModelError"
+
+export type ProviderRequestError = {
+  readonly _tag: "ProviderRequestError"
+  readonly providerID: string
+  readonly reason: "authentication" | "rate_limit" | "content_filter" | "invalid_request" | "overloaded" | "provider"
+  readonly message: string
+  readonly status?: number | undefined
+  readonly retryAfterMs?: number | undefined
+}
+export const isProviderRequestError = (value: unknown): value is ProviderRequestError =>
+  typeof value === "object" && value !== null && "_tag" in value && value["_tag"] === "ProviderRequestError"
 
 export type IntegrationNotFoundError = {
   readonly _tag: "IntegrationNotFoundError"
@@ -3654,6 +3748,43 @@ export type ExperimentalGenerateTextInput = {
 
 export type ExperimentalGenerateTextOutput = GenerateTextResponse["data"]
 
+export type ExperimentalGenerateImageInput = {
+  readonly model: { readonly id: string; readonly providerID: string; readonly variant?: string }
+  readonly prompt: string
+  readonly images?: ReadonlyArray<{ readonly data: string; readonly mime: string; readonly name?: string }> | undefined
+  readonly n?: number | undefined
+  readonly aspect?: `${number}${":"}${number}` | undefined
+  readonly resolution?: ("1K" | "2K" | "4K" | (string & {})) | undefined
+}
+
+export type ExperimentalGenerateImageOutput = GenerateImageResponse["data"]
+
+export type ExperimentalGenerateDecisionsInput = {
+  readonly model: { readonly id: string; readonly providerID: string; readonly variant?: string }
+  readonly input: ReadonlyArray<
+    | { readonly type: "text"; readonly text: string }
+    | { readonly type: "json"; readonly value: JsonValue }
+    | { readonly type: "file"; readonly data: string; readonly mime: string; readonly name?: string }
+  >
+  readonly questions: ReadonlyArray<
+    | { readonly type: "predicate"; readonly name: string; readonly instructions: string }
+    | {
+        readonly type: "choice"
+        readonly name: string
+        readonly instructions: string
+        readonly choices: ReadonlyArray<{ readonly value: string | boolean; readonly description?: string }>
+      }
+    | {
+        readonly type: "score"
+        readonly name: string
+        readonly instructions: string
+        readonly levels: ReadonlyArray<{ readonly label: string; readonly description?: string }>
+      }
+  >
+}
+
+export type ExperimentalGenerateDecisionsOutput = GenerateDecisionsResponse["data"]
+
 export type ExperimentalVoiceModelsOutput = VoiceModelsResponse["data"]
 
 export type ExperimentalVoiceSessionInput = {
@@ -4430,6 +4561,18 @@ export type GenerateTextInput = ExperimentalGenerateTextInput
 
 /** @deprecated Use `ExperimentalGenerateTextOutput`. Removed in the next minor. */
 export type GenerateTextOutput = ExperimentalGenerateTextOutput
+
+/** @deprecated Use `ExperimentalGenerateImageInput`. Removed in the next minor. */
+export type GenerateImageInput = ExperimentalGenerateImageInput
+
+/** @deprecated Use `ExperimentalGenerateImageOutput`. Removed in the next minor. */
+export type GenerateImageOutput = ExperimentalGenerateImageOutput
+
+/** @deprecated Use `ExperimentalGenerateDecisionsInput`. Removed in the next minor. */
+export type GenerateDecisionsInput = ExperimentalGenerateDecisionsInput
+
+/** @deprecated Use `ExperimentalGenerateDecisionsOutput`. Removed in the next minor. */
+export type GenerateDecisionsOutput = ExperimentalGenerateDecisionsOutput
 
 /** @deprecated Use `ExperimentalVoiceModelsOutput`. Removed in the next minor. */
 export type VoiceModelsOutput = ExperimentalVoiceModelsOutput

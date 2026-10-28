@@ -21,6 +21,7 @@ import { useLocal } from "@/providers/models/selection"
 import { usePlatform } from "@/runtime/platform/platform"
 import { uuid } from "@/runtime/persistence/uuid"
 import { contextItemKey } from "@/composer/schema"
+import type { QuoteSource } from "@/composer/quote-source"
 import { useWorkspaceLocation } from "@/workspaces/location"
 import { requireServerKey, sessionHref } from "@/shell/routes/session"
 import { useComposerCommands } from "@/composer/commands"
@@ -40,7 +41,7 @@ import { SessionTodoPill } from "./todo-pill"
 import { sessionTodos, todoFinished } from "./todos"
 import { useOpenSessionRoute } from "../session-identity-header"
 import { resolveSessionComposerSelection } from "./selection"
-import { composerProviderName } from "@/composer/selection"
+import { composerModelLabelKey, composerModelLabels, composerProviderName } from "@/composer/model-label"
 import { useProviders } from "@/providers/catalog/providers"
 import { SubagentBar } from "./subagent-bar"
 import { createSessionRequestModel } from "../requests/model"
@@ -104,13 +105,27 @@ export function createActiveSessionRegion(input: {
   )
 
   const openAttachment: NonNullable<SessionUserActions["openAttachment"]> = (file) => {
-    const url = file.source.type === "uri" ? file.source.uri : `data:${file.mime};base64,${file.data}`
+    const source = file.source
+    const fileData = "data" in file ? file.data : undefined
+    const fileUri = "uri" in file ? file.uri : undefined
+
+    const inlineUrl =
+      source?.type === "uri" ? source.uri : fileData !== undefined ? `data:${file.mime};base64,${fileData}` : undefined
 
     const download = () => {
-      const anchor = document.createElement("a")
-      anchor.href = url
-      anchor.download = getFilename(file.name) || "attachment"
-      anchor.click()
+      void (
+        inlineUrl
+          ? Promise.resolve(inlineUrl)
+          : fileUri
+            ? server.media.load(fileUri, file.mime)
+            : Promise.resolve(undefined)
+      ).then((url) => {
+        if (!url) return
+        const anchor = document.createElement("a")
+        anchor.href = url
+        anchor.download = getFilename(file.name) || "attachment"
+        anchor.click()
+      })
     }
 
     const path = file.name ?? ""
@@ -327,18 +342,27 @@ export function createActiveSessionRegion(input: {
 
   return {
     active,
+    focused: () => !!promptRef?.contains(document.activeElement),
     drop: {
       active: () => active()?.drop.active() ?? false,
       input: () => active()?.drop.input(),
     },
     quote: {
+      source: () => prompt.capture().quoteSource,
       // A child session has no composer to quote into, and a shell command takes no quotes.
       available: () => !input.session.data.isChild() && prompt.capture().mode.current() !== "shell",
-      add: (text: string, comment: boolean) => {
+      add: (text: string, comment: boolean, source: QuoteSource) => {
         const item = { type: "quote" as const, text, commentID: uuid() }
         prompt.context.add(item)
 
-        if (comment) return prompt.capture().quoteComment.set(contextItemKey(item))
+        if (source.length) prompt.capture().quoteSource.add(contextItemKey(item), source)
+
+        if (comment) {
+          prompt.capture().quoteSource.pend(contextItemKey(item))
+
+          return prompt.capture().quoteComment.set(contextItemKey(item))
+        }
+
         focusPrompt()
       },
       focus: focusPrompt,
@@ -459,17 +483,30 @@ export function ActiveSessionComposerRegion(props: {
 
   const providers = useProviders(() => props.session.data.info()?.location.directory)
 
+  const modelLabels = createMemo(() =>
+    composerModelLabels(
+      providers.all(),
+      providers.connected().map((provider) => provider.id),
+    ),
+  )
+
   const subagentModel = () => {
     const ref =
       props.session.data.info()?.model ??
       props.session.history.messages().findLast((message) => message.type === "assistant")?.model
 
     if (!ref) return
-    const catalog = providers.all()
+    const label = modelLabels().get(composerModelLabelKey(ref.providerID, ref.id))
 
     return {
-      provider: composerProviderName(ref.providerID, catalog),
-      name: catalog.get(ref.providerID)?.models[ref.id]?.name.replace("(latest)", "").trim() ?? ref.id,
+      provider: label
+        ? label.provider
+        : composerProviderName(
+            ref.providerID,
+            providers.all(),
+            providers.connected().map((provider) => provider.id),
+          ),
+      name: label?.model ?? ref.id,
       variant: ref.variant,
     }
   }

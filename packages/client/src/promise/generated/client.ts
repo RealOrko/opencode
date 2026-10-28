@@ -111,6 +111,10 @@ import type {
   ModelDefaultOutput,
   ExperimentalGenerateTextInput,
   ExperimentalGenerateTextOutput,
+  ExperimentalGenerateImageInput,
+  ExperimentalGenerateImageOutput,
+  ExperimentalGenerateDecisionsInput,
+  ExperimentalGenerateDecisionsOutput,
   ExperimentalVoiceModelsOutput,
   ExperimentalVoiceSessionInput,
   ExperimentalVoiceSessionOutput,
@@ -1146,10 +1150,41 @@ export function make(options: ClientOptions) {
           request<{ readonly data: ExperimentalGenerateTextOutput }>(
             {
               method: "POST",
-              path: `/api/experimental/generate`,
+              path: `/api/experimental/generate/text`,
               body: { prompt: input["prompt"], model: input["model"] },
               successStatus: 200,
-              declaredStatuses: [400, 401, 404, 503],
+              declaredStatuses: [400, 401, 404, 422, 502, 503],
+              empty: false,
+            },
+            requestOptions,
+          ).then((value) => value.data),
+        image: (input: ExperimentalGenerateImageInput, requestOptions?: RequestOptions) =>
+          request<{ readonly data: ExperimentalGenerateImageOutput }>(
+            {
+              method: "POST",
+              path: `/api/experimental/generate/image`,
+              body: {
+                model: input["model"],
+                prompt: input["prompt"],
+                images: input["images"],
+                n: input["n"],
+                aspect: input["aspect"],
+                resolution: input["resolution"],
+              },
+              successStatus: 200,
+              declaredStatuses: [400, 401, 404, 422, 502, 503],
+              empty: false,
+            },
+            requestOptions,
+          ).then((value) => value.data),
+        decisions: (input: ExperimentalGenerateDecisionsInput, requestOptions?: RequestOptions) =>
+          request<{ readonly data: ExperimentalGenerateDecisionsOutput }>(
+            {
+              method: "POST",
+              path: `/api/experimental/generate/decisions`,
+              body: { model: input["model"], input: input["input"], questions: input["questions"] },
+              successStatus: 200,
+              declaredStatuses: [400, 401, 404, 422, 502, 503],
               empty: false,
             },
             requestOptions,
@@ -2462,6 +2497,10 @@ export function make(options: ClientOptions) {
     generate: {
       /** @deprecated Use `client.experimental.generate.text`. Removed in the next minor. */
       text: client.experimental.generate.text,
+      /** @deprecated Use `client.experimental.generate.image`. Removed in the next minor. */
+      image: client.experimental.generate.image,
+      /** @deprecated Use `client.experimental.generate.decisions`. Removed in the next minor. */
+      decisions: client.experimental.generate.decisions,
     },
     /** @deprecated Use `client.experimental.voice`. Removed in the next minor. */
     voice: {

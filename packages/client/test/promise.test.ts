@@ -135,12 +135,14 @@ test("nests a method under client.experimental exactly when its route is experim
       .filter((route) => route.experimentalRoute !== route.method.startsWith("experimental."))
       .map((route) => route.method),
   ).toEqual([])
-  // Pre-experimental paths kept as deprecated aliases until the next minor (.github/RELEASE_REMINDERS.md).
+  // Pre-experimental paths kept as deprecated aliases until the next minor.
   expect(deprecated.toSorted()).toEqual([
     "config.update",
     "file.unwatch",
     "file.watch",
     "file.write",
+    "generate.decisions",
+    "generate.image",
     "generate.text",
     "integration.wellknown.add",
     "mcp.add",
@@ -361,7 +363,7 @@ test("generate.text uses the locationless public contract", async () => {
   })
 
   expect(await client.experimental.generate.text({ prompt: "ping" })).toEqual({ text: "pong" })
-  expect(request?.url).toBe("http://localhost:3000/api/experimental/generate")
+  expect(request?.url).toBe("http://localhost:3000/api/experimental/generate/text")
   expect(await request?.json()).toEqual({ prompt: "ping" })
 })
 

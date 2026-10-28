@@ -117,6 +117,10 @@ import type {
   ModelDefaultOutput,
   ExperimentalGenerateTextInput,
   ExperimentalGenerateTextOutput,
+  ExperimentalGenerateImageInput,
+  ExperimentalGenerateImageOutput,
+  ExperimentalGenerateDecisionsInput,
+  ExperimentalGenerateDecisionsOutput,
   ExperimentalVoiceModelsOutput,
   ExperimentalVoiceSessionInput,
   ExperimentalVoiceSessionOutput,
@@ -902,8 +906,39 @@ const EndpointExperimentalGenerateText =
       ),
     )
 
+const EndpointExperimentalGenerateImage =
+  (raw: RawClient["server.generate"]) => (input: ExperimentalGenerateImageInput) =>
+    preserveEffect<ExperimentalGenerateImageOutput>()(
+      raw["generate.image"]({
+        payload: {
+          model: input["model"],
+          prompt: input["prompt"],
+          images: input["images"],
+          n: input["n"],
+          aspect: input["aspect"],
+          resolution: input["resolution"],
+        },
+      }).pipe(
+        Effect.mapError(mapClientError),
+        Effect.map((value) => value.data),
+      ),
+    )
+
+const EndpointExperimentalGenerateDecisions =
+  (raw: RawClient["server.generate"]) => (input: ExperimentalGenerateDecisionsInput) =>
+    preserveEffect<ExperimentalGenerateDecisionsOutput>()(
+      raw["generate.decisions"]({
+        payload: { model: input["model"], input: input["input"], questions: input["questions"] },
+      }).pipe(
+        Effect.mapError(mapClientError),
+        Effect.map((value) => value.data),
+      ),
+    )
+
 const adaptGroupExperimentalGenerate = (raw: RawClient["server.generate"]) => ({
   text: EndpointExperimentalGenerateText(raw),
+  image: EndpointExperimentalGenerateImage(raw),
+  decisions: EndpointExperimentalGenerateDecisions(raw),
 })
 
 const EndpointExperimentalVoiceModels = (raw: RawClient["server.voice"]) => () =>
@@ -1825,6 +1860,10 @@ const adaptClient = (raw: RawClient) => {
     generate: {
       /** @deprecated Use `client.experimental.generate.text`. Removed in the next minor. */
       text: client.experimental.generate.text,
+      /** @deprecated Use `client.experimental.generate.image`. Removed in the next minor. */
+      image: client.experimental.generate.image,
+      /** @deprecated Use `client.experimental.generate.decisions`. Removed in the next minor. */
+      decisions: client.experimental.generate.decisions,
     },
     /** @deprecated Use `client.experimental.voice`. Removed in the next minor. */
     voice: {

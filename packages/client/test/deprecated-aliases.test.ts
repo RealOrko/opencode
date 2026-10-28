@@ -12,7 +12,7 @@ import { HttpClient } from "effect/http"
 import { OpenCode as EffectOpenCode } from "../src/effect/index"
 import { OpenCode as PromiseOpenCode } from "../src/promise/index"
 
-// The pre-experimental paths stay until the next minor (.github/RELEASE_REMINDERS.md).
+// The pre-experimental paths stay until the next minor.
 const aliases = (omitEndpoints: ReadonlySet<string>) =>
   compile(ClientApi, { groupNames, omitEndpoints, namespace: clientNamespace, aliases: true }).aliases ?? []
 

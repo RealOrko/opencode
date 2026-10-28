@@ -26,6 +26,7 @@ import type { Workspace } from "@opencode/schema/workspace"
 import type { Instruction } from "@opencode/schema/instruction"
 import type { Snapshot } from "@opencode/schema/snapshot"
 import type { Shell } from "@opencode/schema/shell"
+import type { Generate } from "@opencode/schema/generate"
 import type { Provider } from "@opencode/schema/provider"
 import type { Integration } from "@opencode/schema/integration"
 import type { Mcp } from "@opencode/schema/mcp"
@@ -1483,8 +1484,33 @@ export type ExperimentalGenerateTextOperation<E = never> = (
   input: ExperimentalGenerateTextInput,
 ) => Effect.Effect<ExperimentalGenerateTextOutput, E>
 
+export type ExperimentalGenerateImageInput = {
+  readonly model: Model.Ref
+  readonly prompt: string
+  readonly images?: ReadonlyArray<Generate.File> | undefined
+  readonly n?: number | undefined
+  readonly aspect?: Generate.ImageAspect | undefined
+  readonly resolution?: Generate.ImageResolution | undefined
+}
+export type ExperimentalGenerateImageOutput = Generate.ImageResult
+export type ExperimentalGenerateImageOperation<E = never> = (
+  input: ExperimentalGenerateImageInput,
+) => Effect.Effect<ExperimentalGenerateImageOutput, E>
+
+export type ExperimentalGenerateDecisionsInput = {
+  readonly model: Model.Ref
+  readonly input: ReadonlyArray<Generate.DecisionPart>
+  readonly questions: ReadonlyArray<Generate.DecisionQuestion>
+}
+export type ExperimentalGenerateDecisionsOutput = Generate.DecisionResult
+export type ExperimentalGenerateDecisionsOperation<E = never> = (
+  input: ExperimentalGenerateDecisionsInput,
+) => Effect.Effect<ExperimentalGenerateDecisionsOutput, E>
+
 export interface ExperimentalGenerateApi<E = never> {
   readonly text: ExperimentalGenerateTextOperation<E>
+  readonly image: ExperimentalGenerateImageOperation<E>
+  readonly decisions: ExperimentalGenerateDecisionsOperation<E>
 }
 
 export type ExperimentalVoiceModelsOutput = {
@@ -2708,6 +2734,24 @@ export type GenerateTextOutput = ExperimentalGenerateTextOutput
 /** @deprecated Use `ExperimentalGenerateTextOperation`. Removed in the next minor. */
 export type GenerateTextOperation<E = never> = ExperimentalGenerateTextOperation<E>
 
+/** @deprecated Use `ExperimentalGenerateImageInput`. Removed in the next minor. */
+export type GenerateImageInput = ExperimentalGenerateImageInput
+
+/** @deprecated Use `ExperimentalGenerateImageOutput`. Removed in the next minor. */
+export type GenerateImageOutput = ExperimentalGenerateImageOutput
+
+/** @deprecated Use `ExperimentalGenerateImageOperation`. Removed in the next minor. */
+export type GenerateImageOperation<E = never> = ExperimentalGenerateImageOperation<E>
+
+/** @deprecated Use `ExperimentalGenerateDecisionsInput`. Removed in the next minor. */
+export type GenerateDecisionsInput = ExperimentalGenerateDecisionsInput
+
+/** @deprecated Use `ExperimentalGenerateDecisionsOutput`. Removed in the next minor. */
+export type GenerateDecisionsOutput = ExperimentalGenerateDecisionsOutput
+
+/** @deprecated Use `ExperimentalGenerateDecisionsOperation`. Removed in the next minor. */
+export type GenerateDecisionsOperation<E = never> = ExperimentalGenerateDecisionsOperation<E>
+
 /** @deprecated Use `ExperimentalVoiceModelsOutput`. Removed in the next minor. */
 export type VoiceModelsOutput = ExperimentalVoiceModelsOutput
 
@@ -2875,6 +2919,12 @@ export interface AppApi<E = never> {
   readonly generate: {
     /** @deprecated Use `client.experimental.generate.text`. Removed in the next minor. */
     readonly text: ExperimentalGenerateTextOperation<E>
+
+    /** @deprecated Use `client.experimental.generate.image`. Removed in the next minor. */
+    readonly image: ExperimentalGenerateImageOperation<E>
+
+    /** @deprecated Use `client.experimental.generate.decisions`. Removed in the next minor. */
+    readonly decisions: ExperimentalGenerateDecisionsOperation<E>
   }
 
   /** @deprecated Use `client.experimental.voice`. Removed in the next minor. */

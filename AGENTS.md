@@ -171,12 +171,8 @@ const table = sqliteTable("session", {
 - New endpoints and new default behaviors start experimental.
 - To graduate one, move the route out of `/api/experimental`, drop the `experimental.` prefix, and note it in `CHANGELOG.md`.
 - Experimental HTTP routes change without aliases: rename or remove the route, then update the callers.
-- A breaking move of shipped SDK or plugin API (including moving it under `experimental`) keeps the old path and type names as deprecated aliases of the new ones until the next minor, each marked `@deprecated` with the replacement and "Removed in the next minor". Generated SDK moves get them from the codegen (`compile(..., { aliases: true })` in `packages/client/script/generate.ts`), not by hand. Add the removal to `.github/RELEASE_REMINDERS.md`.
+- A breaking move of shipped SDK or plugin API (including moving it under `experimental`) keeps the old path and type names as deprecated aliases of the new ones until the next minor, each marked `@deprecated` with the replacement and "Removed in the next minor". Generated SDK moves get them from the codegen (`compile(..., { aliases: true })` in `packages/client/script/generate.ts`), not by hand.
 - Experimental plugin hooks are named `experimental.*` (`experimental.ws.handshake`).
-
-## Releases
-
-- Before cutting a minor or major release, read `.github/RELEASE_REMINDERS.md` and act on its section for that release.
 
 ## Testing
 

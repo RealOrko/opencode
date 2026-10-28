@@ -11,7 +11,7 @@ export type ThemeDocumentSource = Record<string, unknown>
 let customThemes: Record<string, ThemeDocumentSource> = {}
 let systemTheme: ThemeDocumentSource | undefined
 const listeners = new Set<(themes: Record<string, ThemeDocumentSource>) => void>()
-const parsed = new WeakMap<object, ThemeDocument>()
+const parsed = { current: new WeakMap<object, ThemeDocument>(), newDesigns: new WeakMap<object, ThemeDocument>() }
 let opencodeTheme: (ThemeDocument & {
   readonly light: ModeDefinition
   readonly dark: ModeDefinition
@@ -60,13 +60,17 @@ export function isThemeSource(source: unknown): source is ThemeDocumentSource {
   return "theme" in source || "base" in source
 }
 
-export function parseTheme(source: ThemeDocumentSource, name = "theme") {
-  const cached = parsed.get(source)
+export function parseTheme(source: ThemeDocumentSource, name = "theme", options: { newDesigns?: boolean } = {}) {
+  const cache = options.newDesigns ? parsed.newDesigns : parsed.current
+  const cached = cache.get(source)
   if (cached) return cached
 
-  const document = "theme" in source ? migrateV1(source as ThemeV1Json) : parseThemeDocument(source, name)
+  const document =
+    "theme" in source
+      ? migrateV1(source as ThemeV1Json, { newDesigns: options.newDesigns })
+      : parseThemeDocument(source, name)
 
-  parsed.set(source, document)
+  cache.set(source, document)
   return document
 }
 

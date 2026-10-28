@@ -140,26 +140,19 @@ export const extensionGlobals = <R>(
   const wrap = (value: Function, label: string, describe?: (args: ReadonlyArray<unknown>) => ExtensionInvocation) =>
     fn(builtins, value.name, value.length, (_, values, site) => {
       const args = values.map((item, index) => toHost(item, `Argument ${index + 1} to ${label}`))
+      const call = callHost<R>(value, args)
       const hooks = ctx.tools.hooks
-      const settle = (run: Effect.Effect<unknown, unknown, R>) =>
-        (describe === undefined
-          ? run
-          : hooked(describe(args), hooks["extension.before"], hooks["extension.after"], run)
-        ).pipe(
-          Effect.mapError((reason) => new Throw(fromHost(reason, label))),
-          Effect.map((settled) => fromHost(settled, label)),
-        )
-      let result: unknown
-      try {
-        result = value.apply(undefined, args)
-      } catch (reason) {
-        return blocking(ctx.runner.blocking(settle(Effect.fail(reason))))
-      }
-      // Extension.Services adds an Effect global's requirements to R.
-      if (Effect.isEffect(result)) return pending(settle(result as Effect.Effect<unknown, unknown, R>), site)
-      if (result instanceof Promise)
-        return pending(settle(Effect.tryPromise({ try: () => result, catch: (reason) => reason })), site)
-      return blocking(ctx.runner.blocking(settle(Effect.succeed(result))))
+      const work = (
+        describe === undefined
+          ? call.effect
+          : hooked(describe(args), hooks["extension.before"], hooks["extension.after"], call.effect)
+      ).pipe(
+        Effect.mapBoth({
+          onFailure: (reason) => new Throw(fromHost(reason, label)),
+          onSuccess: (result) => fromHost(result, label),
+        }),
+      )
+      return call.async ? pending(work, site) : blocking(ctx.runner.blocking(work))
     })
 
   // An asynchronous host call: the program holds a promise that settles when the host's work does.
@@ -179,6 +172,23 @@ export const extensionGlobals = <R>(
       ([name, value]) => [name, wrap(value, name, (args) => ({ extension: extension.name, name, args }))] as const,
     ),
   )
+}
+
+/**
+ * Calls a host function and describes what the program waits on. A returned Effect or Promise settles later; a
+ * returned value or a throw settles now. An Effect has not started yet, so it runs only once the hooks admit it.
+ */
+const callHost = <R>(value: Function, args: ReadonlyArray<unknown>) => {
+  try {
+    const result: unknown = value.apply(undefined, args)
+    // Extension.Services adds an Effect global's requirements to R.
+    if (Effect.isEffect(result)) return { async: true, effect: result as Effect.Effect<unknown, unknown, R> }
+    if (result instanceof Promise)
+      return { async: true, effect: Effect.tryPromise({ try: () => result, catch: (reason) => reason }) }
+    return { async: false, effect: Effect.succeed(result) }
+  } catch (reason) {
+    return { async: false, effect: Effect.fail(reason) }
+  }
 }
 
 // A synchronous host call: its hooks run before any other job, as the call itself did.
